@@ -1,0 +1,58 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: |
+          XCODE_APP="$(ls -d /Applications/Xcode*.app | grep -vi 'beta' | sort -V | tail -n 1)"
+          if [ -z "$XCODE_APP" ]; then
+            XCODE_APP="$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)"
+          fi
+          echo "Using $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+          xcodebuild -showsdks
+
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project simpfun.xcodeproj \
+            -scheme simpfun \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/simpfun.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
+        run: |
+          mkdir -p build/Payload
+          ditto "build/simpfun.xcarchive/Products/Applications/simpfun.app" "build/Payload/simpfun.app"
+          cd build
+          zip -qry simpfun.ipa Payload
+          cd ..
+          ls -lh build/simpfun.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: simpfun-ipa
+          path: build/simpfun.ipa
+          if-no-files-found: error
+          retention-days: 30
