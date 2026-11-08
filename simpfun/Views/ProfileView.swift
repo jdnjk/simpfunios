@@ -136,7 +136,7 @@ struct ProfileView: View {
             Text(user.username)
                 .font(.title2.bold())
 
-            if user.verified || user.isDev || user.isPro {
+            if user.verified || user.isDev || user.isPro || user.proValid {
                 HStack(spacing: 8) {
                     if user.verified {
                         ProfileBadge(title: "已认证", systemImage: "checkmark.seal.fill", tint: .blue)
@@ -144,11 +144,11 @@ struct ProfileView: View {
                     if user.isDev {
                         ProfileBadge(title: "开发者", systemImage: "hammer.fill", tint: .purple)
                     }
-                    if user.isPro {
+                    if user.isPro || user.proValid {
                         ProfileBadge(
-                            title: user.proValid ? "Pro+" : "PRO 已过期",
+                            title: user.proValid ? "Pro+" : "Pro",
                             systemImage: "crown.fill",
-                            tint: user.proValid ? .orange : .gray
+                            tint: .orange
                         )
                     }
                 }
