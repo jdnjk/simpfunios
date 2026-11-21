@@ -71,14 +71,3 @@ struct AnnouncementSheet: View {
         }
     }
 }
-
-#Preview {
-    AnnouncementSheet(
-        announcement: Announcement(
-            show: true,
-            title: "[通知] 滥用处理通知",
-            text: "经过举报以及大数据筛查，我们发现 550 余个涉嫌多开账号。\r\n违反服务条款(<a href=\"https://www.yuque.com/simpfun/sfe/tos\">https://www.yuque.com/simpfun/sfe/tos</a>) 2.1 条。"
-        )
-    )
-    .environment(AppModel())
-}

@@ -19,6 +19,10 @@ enum APIError: Error, Equatable {
     case invalidToken(String)
     /// 需要重新进行小程序验证，或账号已在其它设备退出登录。
     case verificationRequired(String)
+    /// 当前账号没有权限执行该操作。
+    case forbidden(String)
+    /// 积分不足。
+    case insufficientPoints(String)
     /// 请求过于频繁。
     case rateLimited(String)
     case server(code: Int, message: String)
@@ -33,6 +37,8 @@ enum APIError: Error, Equatable {
              .notSignedIn(let message),
              .invalidToken(let message),
              .verificationRequired(let message),
+             .forbidden(let message),
+             .insufficientPoints(let message),
              .rateLimited(let message):
             return message
         case .server(_, let message):
@@ -61,8 +67,13 @@ enum APIError: Error, Equatable {
                 return .networkRestricted(message)
             }
             return .notSignedIn(message.isEmpty ? "登录状态已失效，请重新登录。" : message)
+        case 402:
+            return .insufficientPoints(message.isEmpty ? "积分不足，无法完成操作。" : message)
         case 403:
-            return .verificationRequired(message.isEmpty ? "账号验证失败，请重新验证后登录。" : message)
+            if message.contains("账号验证失败") {
+                return .verificationRequired(message)
+            }
+            return .forbidden(message.isEmpty ? "没有权限执行该操作。" : message)
         case 429:
             return .rateLimited(message.isEmpty ? "操作过于频繁，请稍后再试。" : message)
         default:

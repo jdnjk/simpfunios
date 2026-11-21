@@ -4,9 +4,11 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct LoginView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var viewModel = LoginViewModel()
     @FocusState private var focusedField: Field?
 
@@ -15,15 +17,29 @@ struct LoginView: View {
         case password
     }
 
-    var body: some View {
-        @Bindable var viewModel = viewModel
+    private var usesWideLayout: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
+    }
 
-        ScrollView {
+    var body: some View {
+        if usesWideLayout {
+            wideLayout
+        } else {
+            compactLayout
+        }
+    }
+
+    // MARK: - iPhone
+
+    private var compactLayout: some View {
+        let bindable = Bindable(viewModel)
+
+        return ScrollView {
             VStack(spacing: 32) {
                 header
 
                 VStack(spacing: 20) {
-                    credentialFields(viewModel: $viewModel)
+                    credentialFields(viewModel: bindable)
                     loginButton
                     errorMessage
                 }
@@ -51,6 +67,91 @@ struct LoginView: View {
             }
         }
     }
+
+    // MARK: - iPad
+
+    private var wideLayout: some View {
+        let bindable = Bindable(viewModel)
+
+        return HStack(spacing: 0) {
+            brandHero
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("欢迎回来")
+                            .font(.system(size: 34, weight: .bold))
+                        Text("使用简幻欢账号登录")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    VStack(spacing: 20) {
+                        credentialFields(viewModel: bindable)
+                        loginButton
+                        errorMessage
+                    }
+                }
+                .padding(.horizontal, 40)
+                .padding(.vertical, 48)
+                .frame(maxWidth: 460)
+                .containerRelativeFrame(.vertical, alignment: .center)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .frame(width: 500)
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.errorMessage)
+    }
+
+    private var brandHero: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer(minLength: 0)
+
+            BrandIcon(size: 104)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("简幻欢")
+                    .font(.system(size: 44, weight: .bold))
+                Text("登录你的账号以管理实例")
+                    .font(.title3)
+            }
+            .padding(.top, 24)
+
+            VStack(alignment: .leading, spacing: 14) {
+                featureRow("server.rack", "实例状态一目了然")
+                featureRow("sparkles", "积分与邀请尽在掌握")
+                featureRow("megaphone", "重要公告及时送达")
+            }
+            .padding(.top, 40)
+
+            Spacer(minLength: 0)
+        }
+        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .foregroundStyle(.white)
+        .background {
+            LinearGradient(
+                colors: [Color.accentColor, Color.accentColor.opacity(0.6)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        }
+    }
+
+    private func featureRow(_ systemImage: String, _ text: String) -> some View {
+        Label {
+            Text(text)
+        } icon: {
+            Image(systemName: systemImage)
+                .frame(width: 24)
+        }
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.white.opacity(0.9))
+    }
+
+    // MARK: - Shared
 
     private func credentialFields(viewModel: Bindable<LoginViewModel>) -> some View {
         VStack(spacing: 0) {

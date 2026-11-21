@@ -52,24 +52,3 @@ struct InstanceRow: View {
         )
     }
 }
-
-#Preview {
-    List {
-        InstanceRow(
-            instance: try! JSONDecoder().decode(
-                Instance.self,
-                from: Data(
-                    """
-                    {
-                        "id": 100000,
-                        "name": null,
-                        "cpu": "4",
-                        "ram": "16",
-                        "disk": "16"
-                    }
-                    """.utf8
-                )
-            )
-        )
-    }
-}

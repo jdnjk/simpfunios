@@ -93,7 +93,3 @@ struct WeChatVerificationSheet: View {
         )
     }
 }
-
-#Preview {
-    WeChatVerificationSheet(message: "您的 IP 并未在白名单中，请尝试在同一网络环境下或同一设备下打开微信小程序后重试。")
-}

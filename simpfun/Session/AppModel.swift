@@ -211,6 +211,90 @@ final class AppModel {
         }
     }
 
+    // MARK: - Create instance
+
+    func loadGames(custom: Bool) async throws -> [Game] {
+        try await authorized { token in
+            try await api.fetchGames(custom: custom, token: token)
+        }
+    }
+
+    func loadGameKinds(gameID: Int, custom: Bool) async throws -> [GameKind] {
+        try await authorized { token in
+            try await api.fetchGameKinds(gameID: gameID, custom: custom, token: token)
+        }
+    }
+
+    func loadGameVersions(kindID: Int, custom: Bool) async throws -> [GameVersion] {
+        try await authorized { token in
+            try await api.fetchGameVersions(kindID: kindID, custom: custom, token: token)
+        }
+    }
+
+    func loadShopItems(versionID: Int, custom: Bool) async throws -> [ShopItem] {
+        try await authorized { token in
+            try await api.fetchShopItems(versionID: versionID, custom: custom, token: token)
+        }
+    }
+
+    func loadConfirmation(
+        versionID: Int,
+        itemID: Int,
+        custom: Bool
+    ) async throws -> InstanceConfirmation {
+        try await authorized { token in
+            try await api.fetchConfirmation(
+                versionID: versionID,
+                itemID: itemID,
+                custom: custom,
+                token: token
+            )
+        }
+    }
+
+    func createInstance(versionID: Int, itemID: Int, custom: Bool) async throws {
+        try await authorized { token in
+            try await api.createInstance(
+                versionID: versionID,
+                itemID: itemID,
+                custom: custom,
+                token: token
+            )
+        }
+    }
+
+    // MARK: - Instance detail and tasks
+
+    func loadInstanceDetail(serverID: Int) async throws -> InstanceDetail {
+        try await authorized { token in
+            try await api.fetchInstanceDetail(serverID: serverID, token: token)
+        }
+    }
+
+    func loadInstanceTasks(serverID: Int) async throws -> InstanceTasks {
+        try await authorized { token in
+            try await api.fetchInstanceTasks(serverID: serverID, token: token)
+        }
+    }
+
+    func promoteInstanceTasks(serverID: Int, taskID: Int) async throws {
+        try await authorized { token in
+            try await api.promoteInstanceTasks(serverID: serverID, taskID: taskID, token: token)
+        }
+    }
+
+    func cancelInstanceTask(serverID: Int, taskID: Int) async throws {
+        try await authorized { token in
+            try await api.cancelInstanceTask(serverID: serverID, taskID: taskID, token: token)
+        }
+    }
+
+    func loadTerminalConnection(serverID: Int) async throws -> TerminalConnection {
+        try await authorized { token in
+            try await api.fetchTerminalConnection(serverID: serverID, token: token)
+        }
+    }
+
     // MARK: - Private
 
     /// 为需要登录的请求注入 token，并统一处理登录态失效等错误。

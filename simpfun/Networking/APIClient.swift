@@ -102,8 +102,183 @@ final class APIClient {
         return list
     }
 
-    private func makeRequest(path: String, method: String, token: String? = nil) -> URLRequest {
-        var request = URLRequest(url: baseURL.appending(path: path))
+    // MARK: - 创建实例
+
+    func fetchGames(custom: Bool, token: String) async throws -> [Game] {
+        var query: [URLQueryItem] = []
+        if custom {
+            query.append(URLQueryItem(name: "custom", value: "true"))
+        }
+        let request = makeRequest(path: "/api/games/list", method: "GET", token: token, query: query)
+        let response: GameListResponse = try await send(request)
+        guard response.code == 200, let list = response.list else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return list
+    }
+
+    func fetchGameKinds(gameID: Int, custom: Bool, token: String) async throws -> [GameKind] {
+        let path = custom ? "/api/games/customlist" : "/api/games/kindlist"
+        let request = makeRequest(
+            path: path,
+            method: "GET",
+            token: token,
+            query: [URLQueryItem(name: "game_id", value: String(gameID))]
+        )
+        let response: GameKindListResponse = try await send(request)
+        guard response.code == 200, let list = response.list else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return list
+    }
+
+    func fetchGameVersions(kindID: Int, custom: Bool, token: String) async throws -> [GameVersion] {
+        let path = custom ? "/api/games/custom_versionlist" : "/api/games/versionlist"
+        let request = makeRequest(
+            path: path,
+            method: "GET",
+            token: token,
+            query: [URLQueryItem(name: "kind_id", value: String(kindID))]
+        )
+        let response: GameVersionListResponse = try await send(request)
+        guard response.code == 200, let list = response.list else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return list
+    }
+
+    func fetchShopItems(versionID: Int, custom: Bool, token: String) async throws -> [ShopItem] {
+        var query = [URLQueryItem(name: "version_id", value: String(versionID))]
+        if custom {
+            query.append(URLQueryItem(name: "custom", value: "true"))
+        }
+        let request = makeRequest(path: "/api/shop/list", method: "GET", token: token, query: query)
+        let response: ShopItemListResponse = try await send(request)
+        guard response.code == 200, let list = response.list else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return list
+    }
+
+    func fetchConfirmation(
+        versionID: Int,
+        itemID: Int,
+        custom: Bool,
+        token: String
+    ) async throws -> InstanceConfirmation {
+        var query = [
+            URLQueryItem(name: "version_id", value: String(versionID)),
+            URLQueryItem(name: "item_id", value: String(itemID))
+        ]
+        if custom {
+            query.append(URLQueryItem(name: "custom", value: "true"))
+        }
+        let request = makeRequest(path: "/api/shop/confirmation", method: "GET", token: token, query: query)
+        let response: ConfirmationResponse = try await send(request)
+        guard response.code == 200, let data = response.data else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return data
+    }
+
+    func createInstance(
+        versionID: Int,
+        itemID: Int,
+        custom: Bool,
+        token: String
+    ) async throws {
+        var form = MultipartFormData()
+        form.append(String(itemID), for: "item_id")
+        form.append(String(versionID), for: "version_id")
+        if custom {
+            form.append("true", for: "custom")
+        }
+
+        let response: ActionResponse = try await sendForm(path: "/api/ins/create", form: form, token: token)
+        guard response.code == 200 else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+    }
+
+    // MARK: - 实例详情与任务
+
+    func fetchInstanceDetail(serverID: Int, token: String) async throws -> InstanceDetail {
+        let request = makeRequest(path: "/api/ins/\(serverID)/detail", method: "GET", token: token)
+        let response: InstanceDetailResponse = try await send(request)
+        guard response.code == 200, let data = response.data else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return data
+    }
+
+    func fetchInstanceTasks(serverID: Int, token: String) async throws -> InstanceTasks {
+        let request = makeRequest(path: "/api/ins/\(serverID)/tasks", method: "GET", token: token)
+        let response: InstanceTasksResponse = try await send(request)
+        guard response.code == 200, let list = response.list else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return InstanceTasks(
+            list: list,
+            running: response.running ?? 0,
+            waiting: response.waiting ?? 0,
+            numFirstWaiting: response.numFirstWaiting ?? 0,
+            runningPro: response.runningPro ?? 0,
+            waitingPro: response.waitingPro ?? 0,
+            numFirstWaitingPro: response.numFirstWaitingPro ?? -1,
+            isPro: response.isPro ?? false
+        )
+    }
+
+    func promoteInstanceTasks(serverID: Int, taskID: Int, token: String) async throws {
+        var form = MultipartFormData()
+        form.append(String(taskID), for: "task_id")
+
+        let response: ActionResponse = try await sendForm(
+            path: "/api/ins/\(serverID)/tasks",
+            method: "PUT",
+            form: form,
+            token: token
+        )
+        guard response.code == 200 else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+    }
+
+    func cancelInstanceTask(serverID: Int, taskID: Int, token: String) async throws {
+        var form = MultipartFormData()
+        form.append(String(taskID), for: "task_id")
+
+        let response: ActionResponse = try await sendForm(
+            path: "/api/ins/\(serverID)/tasks",
+            form: form,
+            token: token
+        )
+        guard response.code == 200 else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+    }
+
+    func fetchTerminalConnection(serverID: Int, token: String) async throws -> TerminalConnection {
+        let request = makeRequest(path: "/api/ins/\(serverID)/ws", method: "GET", token: token)
+        let response: TerminalConnectionResponse = try await send(request)
+        guard response.code == 200, let data = response.data else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return data
+    }
+
+    private func makeRequest(
+        path: String,
+        method: String,
+        token: String? = nil,
+        query: [URLQueryItem] = []
+    ) -> URLRequest {
+        var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false)!
+        if !query.isEmpty {
+            components.queryItems = query
+        }
+
+        var request = URLRequest(url: components.url!)
         request.httpMethod = method
         request.timeoutInterval = 20
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -116,10 +291,11 @@ final class APIClient {
 
     private func sendForm<Response: Decodable>(
         path: String,
+        method: String = "POST",
         form: MultipartFormData,
         token: String? = nil
     ) async throws -> Response {
-        var request = makeRequest(path: path, method: "POST", token: token)
+        var request = makeRequest(path: path, method: method, token: token)
         request.setValue(form.contentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = form.encoded()
         return try await send(request)
@@ -201,6 +377,74 @@ private struct DiamondHistoryResponse: Decodable {
     let code: Int
     let msg: String?
     let list: [DiamondRecord]?
+}
+
+private struct GameListResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let list: [Game]?
+}
+
+private struct GameKindListResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let list: [GameKind]?
+}
+
+private struct GameVersionListResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let list: [GameVersion]?
+}
+
+private struct ShopItemListResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let list: [ShopItem]?
+}
+
+private struct ConfirmationResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let data: InstanceConfirmation?
+}
+
+private struct InstanceDetailResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let data: InstanceDetail?
+}
+
+private struct InstanceTasksResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let list: [InstanceTask]?
+    let running: Int?
+    let waiting: Int?
+    let numFirstWaiting: Int?
+    let runningPro: Int?
+    let waitingPro: Int?
+    let numFirstWaitingPro: Int?
+    let isPro: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case code
+        case msg
+        case list
+        case running
+        case waiting
+        case isPro = "is_pro"
+        case numFirstWaiting = "num_first_waiting"
+        case runningPro = "running_pro"
+        case waitingPro = "waiting_pro"
+        case numFirstWaitingPro = "num_first_waiting_pro"
+    }
+}
+
+private struct TerminalConnectionResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let data: TerminalConnection?
 }
 
 private struct ErrorEnvelope: Decodable {
