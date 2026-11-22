@@ -71,8 +71,11 @@ enum APIError: Error, Equatable {
             return .insufficientPoints(message.isEmpty ? "积分不足，无法完成操作。" : message)
         case 403:
             if message.contains("账号验证失败") {
-                return .verificationRequired(message)
+                // 与登录保持一致：这类 403 多半是 IP 不在白名单，
+                // 引导用户去小程序完成验证即可，不必直接退出登录。
+                return .ipNotVerified(message)
             }
+            // 例如电源操作返回的「实例已有任务队列，禁止操作」，保留原文以便界面按场景处理。
             return .forbidden(message.isEmpty ? "没有权限执行该操作。" : message)
         case 429:
             return .rateLimited(message.isEmpty ? "操作过于频繁，请稍后再试。" : message)

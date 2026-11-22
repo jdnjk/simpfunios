@@ -39,6 +39,10 @@ final class TerminalSession {
     @ObservationIgnored
     var tokenRefresher: (@MainActor () async -> String?)?
 
+    /// 跨行延续的 ANSI 颜色状态，让不带颜色码的堆栈行继承上一行的颜色。
+    @ObservationIgnored
+    private var sgrState = TerminalTextFormatter.SGRState()
+
     private static let maxLines = 2_000
     private static let welcomeText = "感谢您使用 简幻欢 SFE4.0 和该APP"
 
@@ -54,6 +58,7 @@ final class TerminalSession {
         disconnect()
 
         lines.removeAll()
+        sgrState = TerminalTextFormatter.SGRState()
         appendSystemLine(Self.welcomeText)
 
         state = .connecting
@@ -279,7 +284,8 @@ final class TerminalSession {
     private func appendLine(_ raw: String) {
         let translated = TerminalTextFormatter.translate(raw)
         let display = translated.isEmpty ? " " : translated
-        lines.append(LogLine(text: TerminalTextFormatter.attributed(display)))
+        let attributed = TerminalTextFormatter.attributed(display, state: &sgrState)
+        lines.append(LogLine(text: attributed))
         trimLines()
     }
 

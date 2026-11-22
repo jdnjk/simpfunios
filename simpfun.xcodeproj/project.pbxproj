@@ -6,6 +6,21 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AA0000000000000000000101 /* Runestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000201 /* Runestone */; };
+		AA0000000000000000000110 /* TreeSitterBashRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000210 /* TreeSitterBashRunestone */; };
+		AA0000000000000000000111 /* TreeSitterJSONRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000211 /* TreeSitterJSONRunestone */; };
+		AA0000000000000000000112 /* TreeSitterYAMLRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000212 /* TreeSitterYAMLRunestone */; };
+		AA0000000000000000000113 /* TreeSitterTOMLRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000213 /* TreeSitterTOMLRunestone */; };
+		AA0000000000000000000114 /* TreeSitterJavaScriptRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000214 /* TreeSitterJavaScriptRunestone */; };
+		AA0000000000000000000115 /* TreeSitterJavaRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000215 /* TreeSitterJavaRunestone */; };
+		AA0000000000000000000116 /* TreeSitterPythonRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000216 /* TreeSitterPythonRunestone */; };
+		AA0000000000000000000117 /* TreeSitterLuaRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000217 /* TreeSitterLuaRunestone */; };
+		AA0000000000000000000118 /* TreeSitterHTMLRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000218 /* TreeSitterHTMLRunestone */; };
+		AA0000000000000000000119 /* TreeSitterCSSRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000219 /* TreeSitterCSSRunestone */; };
+		AA000000000000000000011A /* TreeSitterMarkdownRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000021A /* TreeSitterMarkdownRunestone */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		79E0F29C309EEF9200A3A85E /* simpfun.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = simpfun.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +38,18 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA0000000000000000000101 /* Runestone in Frameworks */,
+				AA0000000000000000000110 /* TreeSitterBashRunestone in Frameworks */,
+				AA0000000000000000000111 /* TreeSitterJSONRunestone in Frameworks */,
+				AA0000000000000000000112 /* TreeSitterYAMLRunestone in Frameworks */,
+				AA0000000000000000000113 /* TreeSitterTOMLRunestone in Frameworks */,
+				AA0000000000000000000114 /* TreeSitterJavaScriptRunestone in Frameworks */,
+				AA0000000000000000000115 /* TreeSitterJavaRunestone in Frameworks */,
+				AA0000000000000000000116 /* TreeSitterPythonRunestone in Frameworks */,
+				AA0000000000000000000117 /* TreeSitterLuaRunestone in Frameworks */,
+				AA0000000000000000000118 /* TreeSitterHTMLRunestone in Frameworks */,
+				AA0000000000000000000119 /* TreeSitterCSSRunestone in Frameworks */,
+				AA000000000000000000011A /* TreeSitterMarkdownRunestone in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +92,18 @@
 			);
 			name = simpfun;
 			packageProductDependencies = (
+				AA0000000000000000000201 /* Runestone */,
+				AA0000000000000000000210 /* TreeSitterBashRunestone */,
+				AA0000000000000000000211 /* TreeSitterJSONRunestone */,
+				AA0000000000000000000212 /* TreeSitterYAMLRunestone */,
+				AA0000000000000000000213 /* TreeSitterTOMLRunestone */,
+				AA0000000000000000000214 /* TreeSitterJavaScriptRunestone */,
+				AA0000000000000000000215 /* TreeSitterJavaRunestone */,
+				AA0000000000000000000216 /* TreeSitterPythonRunestone */,
+				AA0000000000000000000217 /* TreeSitterLuaRunestone */,
+				AA0000000000000000000218 /* TreeSitterHTMLRunestone */,
+				AA0000000000000000000219 /* TreeSitterCSSRunestone */,
+				AA000000000000000000021A /* TreeSitterMarkdownRunestone */,
 			);
 			productName = simpfun;
 			productReference = 79E0F29C309EEF9200A3A85E /* simpfun.app */;
@@ -94,6 +133,10 @@
 			);
 			mainGroup = 79E0F293309EEF9200A3A85E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AA0000000000000000000301 /* XCRemoteSwiftPackageReference "Runestone" */,
+				AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 79E0F29D309EEF9200A3A85E /* Products */;
 			projectDirPath = "";
@@ -178,7 +221,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -236,7 +279,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -252,20 +295,24 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10010;
 				DEVELOPMENT_TEAM = 5GZ9ZWMF34;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.jdnjk.simpfun;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -284,20 +331,24 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10010;
 				DEVELOPMENT_TEAM = 5GZ9ZWMF34;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.jdnjk.simpfun;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -332,6 +383,88 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AA0000000000000000000301 /* XCRemoteSwiftPackageReference "Runestone" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/simonbs/Runestone";
+			requirement = {
+				kind = exactVersion;
+				version = 0.5.2;
+			};
+		};
+		AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/simonbs/TreeSitterLanguages";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.9;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA0000000000000000000201 /* Runestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000301 /* XCRemoteSwiftPackageReference "Runestone" */;
+			productName = Runestone;
+		};
+		AA0000000000000000000210 /* TreeSitterBashRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterBashRunestone;
+		};
+		AA0000000000000000000211 /* TreeSitterJSONRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterJSONRunestone;
+		};
+		AA0000000000000000000212 /* TreeSitterYAMLRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterYAMLRunestone;
+		};
+		AA0000000000000000000213 /* TreeSitterTOMLRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterTOMLRunestone;
+		};
+		AA0000000000000000000214 /* TreeSitterJavaScriptRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterJavaScriptRunestone;
+		};
+		AA0000000000000000000215 /* TreeSitterJavaRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterJavaRunestone;
+		};
+		AA0000000000000000000216 /* TreeSitterPythonRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterPythonRunestone;
+		};
+		AA0000000000000000000217 /* TreeSitterLuaRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterLuaRunestone;
+		};
+		AA0000000000000000000218 /* TreeSitterHTMLRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterHTMLRunestone;
+		};
+		AA0000000000000000000219 /* TreeSitterCSSRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterCSSRunestone;
+		};
+		AA000000000000000000021A /* TreeSitterMarkdownRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000302 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterMarkdownRunestone;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 79E0F294309EEF9200A3A85E /* Project object */;
 }

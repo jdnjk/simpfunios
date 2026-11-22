@@ -4,3 +4,4 @@ DerivedData/
 build/
 Payload/
 *.ipa
+.workbuddy/

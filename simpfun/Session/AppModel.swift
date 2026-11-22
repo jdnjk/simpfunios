@@ -277,6 +277,12 @@ final class AppModel {
         }
     }
 
+    func powerInstance(serverID: Int, action: InstancePowerAction) async throws {
+        try await authorized { token in
+            try await api.powerAction(action, serverID: serverID, token: token)
+        }
+    }
+
     func promoteInstanceTasks(serverID: Int, taskID: Int) async throws {
         try await authorized { token in
             try await api.promoteInstanceTasks(serverID: serverID, taskID: taskID, token: token)
@@ -292,6 +298,102 @@ final class AppModel {
     func loadTerminalConnection(serverID: Int) async throws -> TerminalConnection {
         try await authorized { token in
             try await api.fetchTerminalConnection(serverID: serverID, token: token)
+        }
+    }
+
+    // MARK: - 文件管理
+
+    func loadFileList(serverID: Int, path: String) async throws -> [RemoteFile] {
+        try await authorized { token in
+            try await api.fetchFileList(serverID: serverID, path: path, token: token)
+        }
+    }
+
+    func unarchiveFile(serverID: Int, root: String, file: String) async throws {
+        try await authorized { token in
+            try await api.unarchiveFile(serverID: serverID, root: root, file: file, token: token)
+        }
+    }
+
+    func archiveFiles(
+        serverID: Int,
+        root: String,
+        files: [String],
+        format: ArchiveFormat
+    ) async throws {
+        try await authorized { token in
+            try await api.archiveFiles(
+                serverID: serverID,
+                root: root,
+                files: files,
+                format: format,
+                token: token
+            )
+        }
+    }
+
+    func deleteFiles(serverID: Int, paths: [String]) async throws {
+        try await authorized { token in
+            try await api.deleteFiles(serverID: serverID, paths: paths, token: token)
+        }
+    }
+
+    func fixFilePermissionAndCharset(serverID: Int) async throws {
+        try await authorized { token in
+            try await api.fixFilePermissionAndCharset(serverID: serverID, token: token)
+        }
+    }
+
+    func fileDownloadURL(serverID: Int, path: String) async throws -> URL {
+        try await authorized { token in
+            try await api.fetchFileDownloadLink(serverID: serverID, path: path, token: token)
+        }
+    }
+
+    func fileContent(serverID: Int, path: String) async throws -> String {
+        try await authorized { token in
+            try await api.fetchFileContent(serverID: serverID, path: path, token: token)
+        }
+    }
+
+    func saveFileContent(serverID: Int, path: String, content: String) async throws {
+        try await authorized { token in
+            try await api.saveFileContent(serverID: serverID, path: path, content: content, token: token)
+        }
+    }
+
+    func pasteFiles(serverID: Int, paths: [String], target: String) async throws {
+        try await authorized { token in
+            try await api.pasteFiles(serverID: serverID, paths: paths, target: target, token: token)
+        }
+    }
+
+    func copyFile(serverID: Int, location: String) async throws {
+        try await authorized { token in
+            try await api.copyFile(serverID: serverID, location: location, token: token)
+        }
+    }
+
+    func renameFile(serverID: Int, origin: String, target: String) async throws {
+        try await authorized { token in
+            try await api.renameFile(serverID: serverID, origin: origin, target: target, token: token)
+        }
+    }
+
+    func createFileEntry(
+        serverID: Int,
+        mode: FileCreateMode,
+        root: String,
+        name: String
+    ) async throws {
+        try await authorized { token in
+            try await api.createFileEntry(
+                serverID: serverID,
+                mode: mode,
+                root: root,
+                name: name,
+                token: token
+            )
         }
     }
 

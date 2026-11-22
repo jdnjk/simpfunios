@@ -104,7 +104,7 @@ jobs:
           mkdir -p build/Payload
           ditto "build/simpfun.xcarchive/Products/Applications/simpfun.app" "build/Payload/simpfun.app"
 
-          ICON="simpfun/Assets.xcassets/AppIcon.appiconset/simpfun.png"
+          ICON="simpfun/Assets.xcassets/AppIcon.appiconset/simpfun-light.png"
           sips -z 512 512 "$ICON" --out build/iTunesArtwork >/dev/null
           cp "$ICON" build/iTunesArtwork@2x
 

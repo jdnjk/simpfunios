@@ -16,6 +16,13 @@ struct InstanceDetailView: View {
     @State private var hasAutoOpenedTasks = false
     @State private var isShowingShortageInfo = false
     @State private var isDrawerOpen = false
+    @State private var pendingPowerAction: InstancePowerAction?
+    @State private var isPerformingPower = false
+    @State private var powerErrorMessage: String?
+    /// 指令发出后、服务端状态真正变化前，用来展示「启动中 / 停止中」等过渡状态。
+    @State private var optimisticStatus: String?
+    @State private var powerFeedbackTrigger = 0
+    @State private var powerFeedbackIsError = false
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -80,6 +87,11 @@ struct InstanceDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if detail != nil {
+                    powerMenu
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                if detail != nil {
                     Button {
                         toggleDrawer()
                     } label: {
@@ -91,6 +103,24 @@ struct InstanceDetailView: View {
         .sheet(isPresented: $isShowingShortageInfo) {
             ShortageInfoSheet()
         }
+        .confirmationDialog(
+            pendingPowerAction?.title ?? "",
+            isPresented: Binding(
+                get: { pendingPowerAction != nil },
+                set: { isPresented in
+                    if !isPresented { pendingPowerAction = nil }
+                }
+            ),
+            presenting: pendingPowerAction
+        ) { action in
+            Button(action.title, role: action.isDestructive ? .destructive : nil) {
+                Task { await performPower(action) }
+            }
+            Button("取消", role: .cancel) {}
+        } message: { action in
+            Text(powerConfirmationMessage(for: action))
+        }
+        .sensoryFeedback(powerFeedbackIsError ? .error : .success, trigger: powerFeedbackTrigger)
         .task {
             await load()
         }
@@ -127,7 +157,12 @@ struct InstanceDetailView: View {
                     }
                 )
             case .files:
-                placeholder(.files)
+                InstanceFilesFeatureView(
+                    serverID: instance.id,
+                    onRequireTasks: {
+                        selectedFeature = .tasks
+                    }
+                )
             case .reinstall:
                 placeholder(.reinstall)
             case .backup:
@@ -188,6 +223,8 @@ struct InstanceDetailView: View {
                 }
             }
 
+            powerSection(detail)
+
             featureSection
 
             Section("配置") {
@@ -196,7 +233,7 @@ struct InstanceDetailView: View {
                 }
 
                 LabeledContent("状态") {
-                    value(Text(statusText(detail.status)))
+                    value(Text(statusText(currentStatus)))
                 }
 
                 if !detail.areaGrade.isEmpty {
@@ -248,7 +285,7 @@ struct InstanceDetailView: View {
 
                 Spacer(minLength: 12)
 
-                statusBadge(detail.status)
+                statusBadge(currentStatus)
             }
 
             if detail.isPro || detail.devMode {
@@ -269,6 +306,249 @@ struct InstanceDetailView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    // MARK: - 电源控制
+
+    @ViewBuilder
+    private func powerSection(_ detail: InstanceDetail) -> some View {
+        let status = currentStatus.lowercased()
+        let actions = availablePowerActions(for: status)
+
+        Section {
+            if detail.isSuspended {
+                Label("实例已暂停，无法进行电源操作", systemImage: "pause.circle")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else if isPowerBusy {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text(powerProgressText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowInsets(EdgeInsets(top: 14, leading: 20, bottom: 14, trailing: 20))
+            } else if actions.isEmpty {
+                Text("当前状态不支持电源操作，请稍后刷新。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                HStack(spacing: 10) {
+                    ForEach(actions) { action in
+                        powerButton(action, isPrimary: actions.count == 1)
+                    }
+                }
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+
+                if isKillable(status) {
+                    Button(role: .destructive) {
+                        requestPower(.kill)
+                    } label: {
+                        Label("强制停止", systemImage: InstancePowerAction.kill.systemImage)
+                    }
+                }
+            }
+
+            if !detail.isSuspended, let powerErrorMessage {
+                Label(powerErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        } header: {
+            Text("电源")
+        } footer: {
+            Text("停止会先保存数据再关闭容器，在线玩家将被断开连接；强制停止会立即结束进程，可能造成存档丢失。")
+        }
+    }
+
+    @ViewBuilder
+    private func powerButton(_ action: InstancePowerAction, isPrimary: Bool) -> some View {
+        let label = Label(action.title, systemImage: action.systemImage)
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 2)
+
+        if isPrimary {
+            Button {
+                requestPower(action)
+            } label: {
+                label
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(powerTint(for: action))
+        } else {
+            Button {
+                requestPower(action)
+            } label: {
+                label
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(powerTint(for: action))
+        }
+    }
+
+    @ViewBuilder
+    private var powerMenu: some View {
+        let status = currentStatus.lowercased()
+
+        Menu {
+            Button {
+                requestPower(.start)
+            } label: {
+                Label("启动", systemImage: InstancePowerAction.start.systemImage)
+            }
+            .disabled(isPowerBusy || !availablePowerActions(for: status).contains(.start))
+
+            Button {
+                requestPower(.restart)
+            } label: {
+                Label("重启", systemImage: InstancePowerAction.restart.systemImage)
+            }
+            .disabled(isPowerBusy || !availablePowerActions(for: status).contains(.restart))
+
+            Divider()
+
+            Button(role: .destructive) {
+                requestPower(.stop)
+            } label: {
+                Label("停止", systemImage: InstancePowerAction.stop.systemImage)
+            }
+            .disabled(isPowerBusy || !availablePowerActions(for: status).contains(.stop))
+
+            Button(role: .destructive) {
+                requestPower(.kill)
+            } label: {
+                Label("强制停止", systemImage: InstancePowerAction.kill.systemImage)
+            }
+            .disabled(isPowerBusy || !isKillable(status))
+        } label: {
+            Label("电源", systemImage: "power")
+        }
+        .disabled(detail?.isSuspended ?? true)
+    }
+
+    private var currentStatus: String {
+        optimisticStatus ?? detail?.status ?? ""
+    }
+
+    private var isPowerBusy: Bool {
+        isPerformingPower || optimisticStatus != nil
+    }
+
+    private var powerProgressText: String {
+        guard let optimisticStatus else { return "正在发送指令…" }
+        return statusText(optimisticStatus) + "…"
+    }
+
+    private func availablePowerActions(for status: String) -> [InstancePowerAction] {
+        switch status {
+        case "running", "online":
+            return [.restart, .stop]
+        case "starting", "stopping", "restarting":
+            return []
+        case "offline", "stopped", "":
+            return [.start]
+        default:
+            // 未知状态时把启动/重启/停止都放出来，是否允许交由服务端判断。
+            return [.start, .restart, .stop]
+        }
+    }
+
+    private func isKillable(_ status: String) -> Bool {
+        switch status {
+        case "running", "online", "starting", "stopping", "restarting":
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func powerTint(for action: InstancePowerAction) -> Color {
+        switch action {
+        case .start:
+            return .green
+        case .stop, .kill:
+            return .red
+        case .restart:
+            return .accentColor
+        }
+    }
+
+    private func powerConfirmationMessage(for action: InstancePowerAction) -> String {
+        switch action {
+        case .stop:
+            return "服务器会先保存数据，再关闭容器，在线玩家将被断开连接。"
+        case .kill:
+            return "立即结束服务器进程，未保存的进度可能丢失。仅在无法正常停止时使用。"
+        case .start, .restart:
+            return ""
+        }
+    }
+
+    /// 启动与重启可以直接执行；停止与强制停止会打断玩家，先弹系统确认框。
+    private func requestPower(_ action: InstancePowerAction) {
+        guard !isPowerBusy else { return }
+        powerErrorMessage = nil
+
+        if action.requiresConfirmation {
+            pendingPowerAction = action
+        } else {
+            Task { await performPower(action) }
+        }
+    }
+
+    private func performPower(_ action: InstancePowerAction) async {
+        guard let serverID = detail?.id, !isPerformingPower else { return }
+
+        isPerformingPower = true
+        powerErrorMessage = nil
+
+        let statusBeforeAction = currentStatus
+        optimisticStatus = action.transitionalStatus
+
+        defer { isPerformingPower = false }
+
+        do {
+            try await model.powerInstance(serverID: serverID, action: action)
+            powerFeedbackIsError = false
+            powerFeedbackTrigger += 1
+        } catch let error as APIError {
+            optimisticStatus = nil
+            powerFeedbackIsError = true
+            powerFeedbackTrigger += 1
+            handlePowerError(error)
+            return
+        } catch {
+            optimisticStatus = nil
+            powerErrorMessage = error.localizedDescription
+            return
+        }
+
+        // 容器真正变更状态需要几秒，轮询几次把界面拉回服务端的真实状态。
+        for _ in 0..<3 {
+            try? await Task.sleep(for: .seconds(2))
+            if Task.isCancelled { return }
+            await load(force: true)
+            if detail?.status != statusBeforeAction { break }
+        }
+
+        optimisticStatus = nil
+    }
+
+    private func handlePowerError(_ error: APIError) {
+        switch error {
+        case .forbidden(let message) where message.contains("任务队列"):
+            // 实例正在执行其它任务，直接带到任务页处理，避免用户卡在原地。
+            selectedFeature = .tasks
+        case .ipNotVerified, .verificationRequired, .notSignedIn, .invalidToken:
+            // AppModel 已经弹出小程序验证或登录失效提示，这里不再重复展示。
+            break
+        default:
+            powerErrorMessage = error.message
+        }
     }
 
     private var featureSection: some View {
@@ -474,6 +754,8 @@ struct InstanceDetailView: View {
             return "离线"
         case "starting":
             return "启动中"
+        case "restarting":
+            return "重启中"
         case "stopping":
             return "停止中"
         case "suspended":
@@ -489,7 +771,7 @@ struct InstanceDetailView: View {
             return .green
         case "offline", "stopped":
             return .gray
-        case "starting", "stopping":
+        case "starting", "stopping", "restarting":
             return .orange
         case "suspended":
             return .red

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 「文件」App 中显示本 App 的 Documents 目录（下载的文件就放在里面）。
+	     其余键由 GENERATE_INFOPLIST_FILE 自动生成后合并进来。 -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+</dict>
+</plist>

@@ -211,6 +211,29 @@ final class APIClient {
         return data
     }
 
+    /// 电源操作：`GET /api/ins/{id}/power?action=start|stop|restart|kill`。
+    /// 成功时服务端返回 `{"code": 200, "status": true, "msg": "成功开启服务器"}`。
+    func powerAction(_ action: InstancePowerAction, serverID: Int, token: String) async throws {
+        let request = makeRequest(
+            path: "/api/ins/\(serverID)/power",
+            method: "GET",
+            token: token,
+            query: [URLQueryItem(name: "action", value: action.rawValue)]
+        )
+
+        let response: PowerResponse = try await send(request)
+        if response.code == 200, response.status != false {
+            return
+        }
+        if response.code == 200 {
+            let message = response.msg ?? "操作未成功，请稍后重试。"
+            // code 是 200 但 status 为 false，同样属于"指令没被接受"，一并打日志。
+            APILog.unexpectedResponse(request, status: 200, note: "status = false · msg: \(message)")
+            throw APIError.requestRejected(message)
+        }
+        throw APIError.make(code: response.code, message: response.msg)
+    }
+
     func fetchInstanceTasks(serverID: Int, token: String) async throws -> InstanceTasks {
         let request = makeRequest(path: "/api/ins/\(serverID)/tasks", method: "GET", token: token)
         let response: InstanceTasksResponse = try await send(request)
@@ -267,6 +290,224 @@ final class APIClient {
         return data
     }
 
+    // MARK: - 文件管理
+
+    /// 列出目录内容：`GET /api/ins/{id}/file/list?path=/`。
+    func fetchFileList(serverID: Int, path: String, token: String) async throws -> [RemoteFile] {
+        let request = makeRequest(
+            path: "/api/ins/\(serverID)/file/list",
+            method: "GET",
+            token: token,
+            query: [URLQueryItem(name: "path", value: path)]
+        )
+        let response: FileListResponse = try await send(request)
+        guard response.code == 200, let list = response.list else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return list
+    }
+
+    /// 解压：`root` 为所在目录，`file` 为该目录下的文件名（不带路径）。
+    func unarchiveFile(serverID: Int, root: String, file: String, token: String) async throws {
+        try await sendFileAction(
+            path: "/api/ins/\(serverID)/file/unarchive",
+            values: [("root", root), ("file", file)],
+            token: token
+        )
+    }
+
+    /// 压缩：`files` 为目录内的名称数组，`root` 为它们所在的目录。
+    func archiveFiles(
+        serverID: Int,
+        root: String,
+        files: [String],
+        format: ArchiveFormat,
+        token: String
+    ) async throws {
+        try await sendFileAction(
+            path: "/api/ins/\(serverID)/file/archive",
+            values: [
+                ("root", root),
+                ("files", Self.jsonArray(files)),
+                ("format", format.rawValue)
+            ],
+            token: token
+        )
+    }
+
+    /// 删除：`list` 为绝对路径的 JSON 数组。
+    func deleteFiles(serverID: Int, paths: [String], token: String) async throws {
+        try await sendFileAction(
+            path: "/api/ins/\(serverID)/file/delete",
+            values: [("list", Self.jsonArray(paths))],
+            token: token
+        )
+    }
+
+    /// 修复中文乱码与文件权限。
+    func fixFilePermissionAndCharset(serverID: Int, token: String) async throws {
+        try await sendFileAction(
+            path: "/api/ins/\(serverID)/toolbox",
+            values: [("action", "fix_permission_and_charset")],
+            token: token
+        )
+    }
+
+    /// 下载：先取临时直链，再由界面交给浏览器/分享。
+    func fetchFileDownloadLink(serverID: Int, path: String, token: String) async throws -> URL {
+        let request = makeRequest(
+            path: "/api/ins/\(serverID)/file/download",
+            method: "GET",
+            token: token,
+            query: [URLQueryItem(name: "path", value: path)]
+        )
+        let response: FileDownloadResponse = try await send(request)
+        guard response.code == 200,
+              let link = response.link,
+              let url = URL(string: link) else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return url
+    }
+
+    /// 读取文本文件内容：`/api/ins/{id}/file/fetch?path=/start.sh`。
+    func fetchFileContent(serverID: Int, path: String, token: String) async throws -> String {
+        let request = makeRequest(
+            path: "/api/ins/\(serverID)/file/fetch",
+            method: "GET",
+            token: token,
+            query: [URLQueryItem(name: "path", value: path)]
+        )
+        let response: FileContentResponse = try await send(request)
+        guard response.code == 200, let content = response.content else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+        return content
+    }
+
+    /// 保存文本文件：表单 `path` + `content`，成功返回 `{"code":200,"msg":"success"}`。
+    func saveFileContent(serverID: Int, path: String, content: String, token: String) async throws {
+        let response: ActionResponse = try await sendFormValues(
+            path: "/api/ins/\(serverID)/file/save",
+            values: [("path", path), ("content", content)],
+            token: token
+        )
+        guard response.code == 200 else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+    }
+
+    /// 粘贴（剪切后的移动）：`list` 为绝对路径，`target` 为目标目录。
+    ///
+    /// 官方 curl 写的是 `GET` + 表单体（`--request GET --data-urlencode`），
+    /// 但服务端未必会解析 GET 的请求体，所以先按查询参数发 GET；
+    /// 若网关明确不认这个方法（404/405/HTML 页面），再用 POST 表单补一次。
+    func pasteFiles(serverID: Int, paths: [String], target: String, token: String) async throws {
+        let path = "/api/ins/\(serverID)/file/paste"
+        let list = Self.jsonArray(paths)
+
+        let request = makeRequest(
+            path: path,
+            method: "GET",
+            token: token,
+            query: [
+                URLQueryItem(name: "list", value: list),
+                URLQueryItem(name: "target", value: target)
+            ]
+        )
+
+        do {
+            let response: ActionResponse = try await send(request)
+            guard response.code == 200 else {
+                throw APIError.make(code: response.code, message: response.msg)
+            }
+        } catch {
+            guard Self.isMethodMismatch(error) else { throw error }
+            try await sendFileAction(
+                path: path,
+                values: [("list", list), ("target", target)],
+                token: token
+            )
+        }
+    }
+
+    /// 判断错误是否更像「这个路径/方法不存在」，而不是业务拒绝。
+    private static func isMethodMismatch(_ error: Error) -> Bool {
+        guard let apiError = error as? APIError else { return false }
+        switch apiError {
+        case .server(let code, _):
+            return code == 404 || code == 405
+        case .invalidResponse:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// 创建副本（仅文件）。
+    func copyFile(serverID: Int, location: String, token: String) async throws {
+        try await sendFileAction(
+            path: "/api/ins/\(serverID)/file/copy",
+            values: [("location", location)],
+            token: token
+        )
+    }
+
+    /// 重命名，`origin` 与 `target` 都是绝对路径。
+    func renameFile(serverID: Int, origin: String, target: String, token: String) async throws {
+        try await sendFileAction(
+            path: "/api/ins/\(serverID)/file/rename",
+            values: [("origin", origin), ("target", target)],
+            token: token
+        )
+    }
+
+    /// 新建文件或文件夹。
+    func createFileEntry(
+        serverID: Int,
+        mode: FileCreateMode,
+        root: String,
+        name: String,
+        token: String
+    ) async throws {
+        try await sendFileAction(
+            path: "/api/ins/\(serverID)/file/create",
+            values: [("mode", mode.rawValue), ("root", root), ("name", name)],
+            token: token
+        )
+    }
+
+    /// 文件类接口统一使用 `application/x-www-form-urlencoded`（与官方 curl 示例一致），
+    /// 只关心 `code`，其余提示交给界面。
+    private func sendFileAction(
+        path: String,
+        method: String = "POST",
+        values: [(String, String)],
+        token: String
+    ) async throws {
+        let response: ActionResponse = try await sendFormValues(
+            path: path,
+            method: method,
+            values: values,
+            token: token
+        )
+        guard response.code == 200 else {
+            throw APIError.make(code: response.code, message: response.msg)
+        }
+    }
+
+    private static func jsonArray(_ values: [String]) -> String {
+        let encoder = JSONEncoder()
+        // 服务端示例是原样斜杠（`["/plugins/a.jar"]`），不做 `\/` 转义。
+        encoder.outputFormatting = [.withoutEscapingSlashes]
+
+        guard let data = try? encoder.encode(values),
+              let text = String(data: data, encoding: .utf8) else {
+            return "[]"
+        }
+        return text
+    }
+
     private func makeRequest(
         path: String,
         method: String,
@@ -301,6 +542,38 @@ final class APIClient {
         return try await send(request)
     }
 
+    /// 以 `application/x-www-form-urlencoded` 提交，部分接口（文件管理、工具箱）只接受这种格式。
+    private func sendFormValues<Response: Decodable>(
+        path: String,
+        method: String = "POST",
+        values: [(String, String)],
+        token: String? = nil,
+        query: [URLQueryItem] = []
+    ) async throws -> Response {
+        var request = makeRequest(path: path, method: method, token: token, query: query)
+        request.setValue(
+            "application/x-www-form-urlencoded; charset=utf-8",
+            forHTTPHeaderField: "Content-Type"
+        )
+        request.httpBody = Self.formEncoded(values)
+        return try await send(request)
+    }
+
+    private static func formEncoded(_ values: [(String, String)]) -> Data {
+        // RFC 3986 未保留字符之外一律百分号编码；空格用 %20，服务端同样能解析。
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+
+        let text = values.map { name, value in
+            let key = name.addingPercentEncoding(withAllowedCharacters: allowed) ?? name
+            let encoded = value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+            return "\(key)=\(encoded)"
+        }
+        .joined(separator: "&")
+
+        return Data(text.utf8)
+    }
+
     /// 与 Android 端保持一致的标识：SimpfunAPP/版本号。
     private static var userAgent: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -313,22 +586,54 @@ final class APIClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
+            Self.log(request, status: nil, note: "请求失败：\(error.localizedDescription)")
             throw APIError.network(error.localizedDescription)
         }
 
-        guard response is HTTPURLResponse else {
+        guard let http = response as? HTTPURLResponse else {
+            Self.log(request, status: nil, body: data, note: "响应不是 HTTP 响应")
             throw APIError.invalidResponse
         }
 
         do {
-            return try decoder.decode(Response.self, from: data)
+            let value = try decoder.decode(Response.self, from: data)
+            // 业务错误也是 HTTP 200 + `{"code": 403, ...}`，解码能通过，
+            // 真正抛错发生在调用方，所以这里先按业务码兜一次日志。
+            let businessCode = APILog.envelope(from: data)?.code
+            if http.statusCode != 200 || (businessCode != nil && businessCode != 200) {
+                Self.log(request, status: http.statusCode, body: data)
+            }
+            return value
         } catch {
+            Self.log(
+                request,
+                status: http.statusCode,
+                body: data,
+                note: "响应无法解码：\(error.localizedDescription)"
+            )
             // 业务错误同样以 JSON 返回，尽量把服务端的提示展示给用户。
             if let envelope = try? decoder.decode(ErrorEnvelope.self, from: data) {
                 throw APIError.make(code: envelope.code, message: envelope.msg)
             }
+            // 网关或反向代理异常时会返回 HTML（例如 404 Not Found 页面）或空响应体。
+            if http.statusCode >= 400 {
+                throw APIError.server(
+                    code: http.statusCode,
+                    message: "服务器返回异常（HTTP \(http.statusCode)），请稍后重试。"
+                )
+            }
             throw APIError.invalidResponse
         }
+    }
+
+    /// 只打印非 200 的响应，正常请求不打扰控制台。
+    private static func log(
+        _ request: URLRequest,
+        status: Int?,
+        body: Data? = nil,
+        note: String? = nil
+    ) {
+        APILog.unexpectedResponse(request, status: status, body: body, note: note)
     }
 }
 
@@ -352,6 +657,13 @@ private struct InstanceListResponse: Decodable {
 
 private struct ActionResponse: Decodable {
     let code: Int
+    let msg: String?
+}
+
+/// 电源接口额外返回 `status` 表示指令是否被接受。
+private struct PowerResponse: Decodable {
+    let code: Int
+    let status: Bool?
     let msg: String?
 }
 
@@ -450,4 +762,22 @@ private struct TerminalConnectionResponse: Decodable {
 private struct ErrorEnvelope: Decodable {
     let code: Int
     let msg: String?
+}
+
+private struct FileListResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let list: [RemoteFile]?
+}
+
+private struct FileDownloadResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let link: String?
+}
+
+private struct FileContentResponse: Decodable {
+    let code: Int
+    let msg: String?
+    let content: String?
 }
